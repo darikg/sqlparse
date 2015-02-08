@@ -105,6 +105,11 @@ class TestGrouping(TestCaseBase):
         self.assert_(isinstance(p.tokens[0], sql.Identifier))
         self.assert_(isinstance(p.tokens[0].tokens[0], sql.Function))
 
+    def test_identifier_qualified_function(self):
+        p = sqlparse.parse('schema1.func1()')[0].tokens[0]
+        self.assert_(p.get_name() == 'func1')
+        self.assert_(p.get_parent_name() == 'schema1')
+
     def test_identifier_extended(self):  # issue 15
         p = sqlparse.parse('foo+100')[0]
         self.assert_(isinstance(p.tokens[0], sql.Identifier))

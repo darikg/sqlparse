@@ -426,13 +426,18 @@ class TokenList(Token):
             next_ = self.token_next_by_type(0, T.Name)
             if next_ is not None:
                 return self._remove_quotes(next_.value)
-            return None
 
         next_ = self.token_next_by_type(self.token_index(dot),
                                         (T.Name, T.Wildcard, T.String.Symbol))
-        if next_ is None:  # invalid identifier, e.g. "a."
-            return None
-        return self._remove_quotes(next_.value)
+        if next_ is not None:
+            return self._remove_quotes(next_.value)
+
+        next_ = self.token_next_by_instance(0, Function)
+        if next_ is not None:
+            return next_.get_name()
+
+        # invalid identifier, e.g. "a."
+        return None
 
 
 class Statement(TokenList):
