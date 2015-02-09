@@ -384,3 +384,8 @@ def test_aliased_column_without_as():
     assert p.get_real_name() == 'bar'
     assert p.get_alias() == 'baz'
 
+
+def test_aliased_literal_without_as():
+    p = sqlparse.parse('1 foo')[0].tokens
+    assert len(p) == 1
+    assert p[0].get_alias() == 'foo'
