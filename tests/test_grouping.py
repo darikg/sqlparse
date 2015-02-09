@@ -350,3 +350,9 @@ def test_nested_begin():
     assert inner.tokens[0].value == 'BEGIN'
     assert inner.tokens[-1].value == 'END'
     assert isinstance(inner, sql.Begin)
+
+
+def test_aliased_function_without_as():
+    p = sqlparse.parse('SELECT foo() bar')[0].tokens[-1]
+    assert p.get_real_name() == 'foo'
+    assert p.get_alias() == 'bar'

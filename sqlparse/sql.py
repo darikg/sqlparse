@@ -396,11 +396,13 @@ class TokenList(Token):
             if alias is None:
                 return None
         else:
-            next_ = self.token_next_by_instance(0, Identifier)
+            # In a case like "foo() bar" prefer the second identifier as alias
+            next_ = (self.token_next_by_instance(1, Identifier)
+                     or self.token_next_by_instance(0, Identifier)
+                     or self.token_next_by_type(0, T.String.Symbol))
+
             if next_ is None:
-                next_ = self.token_next_by_type(0, T.String.Symbol)
-                if next_ is None:
-                    return None
+                return None
             alias = next_
         if isinstance(alias, Identifier):
             return alias.get_name()
@@ -422,19 +424,16 @@ class TokenList(Token):
         """Returns the real name (object name) of this identifier."""
         # a.b
         dot = self.token_next_match(0, T.Punctuation, '.')
-        if dot is None:
-            next_ = self.token_next_by_type(0, T.Name)
-            if next_ is not None:
-                return self._remove_quotes(next_.value)
-
-        next_ = self.token_next_by_type(self.token_index(dot),
-                                        (T.Name, T.Wildcard, T.String.Symbol))
-        if next_ is not None:
+        if dot is not None:
+            next_ = self.token_next_by_type(self.token_index(dot),
+                                (T.Name, T.Wildcard, T.String.Symbol))
             return self._remove_quotes(next_.value)
 
-        next_ = self.token_next_by_instance(0, Function)
-        if next_ is not None:
-            return next_.get_name()
+        for tok in self.tokens:
+            if tok.ttype == T.Name:
+                return self._remove_quotes(tok.value)
+            elif type(tok) in (Identifier, Function):
+                return tok.get_name()
 
         # invalid identifier, e.g. "a."
         return None
