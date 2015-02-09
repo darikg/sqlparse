@@ -352,7 +352,35 @@ def test_nested_begin():
     assert isinstance(inner, sql.Begin)
 
 
+def test_qualified_function():
+    p = sqlparse.parse('foo()')[0].tokens[0]
+    assert p.get_parent_name() is None
+    assert p.get_real_name() == 'foo'
+
+    p = sqlparse.parse('foo.bar()')[0].tokens[0]
+    assert p.get_parent_name() == 'foo'
+    assert p.get_real_name() == 'bar'
+
+
 def test_aliased_function_without_as():
-    p = sqlparse.parse('SELECT foo() bar')[0].tokens[-1]
+    p = sqlparse.parse('foo() bar')[0].tokens[0]
+    assert p.get_parent_name() is None
     assert p.get_real_name() == 'foo'
     assert p.get_alias() == 'bar'
+
+    p = sqlparse.parse('foo.bar() baz')[0].tokens[0]
+    assert p.get_parent_name() == 'foo'
+    assert p.get_real_name() == 'bar'
+    assert p.get_alias() == 'baz'
+
+
+def test_aliased_column_without_as():
+    p = sqlparse.parse('foo bar')[0].tokens[0]
+    assert p.get_real_name() == 'foo'
+    assert p.get_alias() == 'bar'
+
+    p = sqlparse.parse('foo.bar baz')[0].tokens[0]
+    assert p.get_parent_name() == 'foo'
+    assert p.get_real_name() == 'bar'
+    assert p.get_alias() == 'baz'
+
