@@ -390,22 +390,23 @@ class TokenList(Token):
 
     def get_alias(self):
         """Returns the alias for this identifier or ``None``."""
-        kw = self.token_next_match(0, T.Keyword, 'AS')
-        if kw is not None:
-            alias = self.token_next(self.token_index(kw))
-            if alias is None:
-                return None
-        else:
-            # In a case like "foo() bar" prefer the second identifier as alias
-            next_ = (self.token_next_by_instance(1, Identifier)
-                     or self.token_next_by_instance(0, Identifier)
-                     or self.token_next_by_type(0, T.String.Symbol))
 
-            if next_ is None:
-                return None
-            alias = next_
+        alias = None
+        # name AS alias
+        alias_sep = self.token_next_match(0, T.Keyword, 'AS')
+        if alias_sep is None:
+            # name alias
+            alias_sep = self.token_next_by_type(0, T.Whitespace)
+
+        if alias_sep is not None:
+            alias = self.token_next(self.token_index(alias_sep))
+
+        if alias is None:
+            return None
+
         if isinstance(alias, Identifier):
             return alias.get_name()
+
         return self._remove_quotes(unicode(alias))
 
     def get_name(self):
@@ -425,14 +426,21 @@ class TokenList(Token):
         # a.b
         dot = self.token_next_match(0, T.Punctuation, '.')
         if dot is not None:
-            next_ = self.token_next_by_type(self.token_index(dot),
+            dot_idx = self.token_index(dot)
+
+            next_ = self.token_next_by_type(dot_idx,
                                 (T.Name, T.Wildcard, T.String.Symbol))
-            return self._remove_quotes(next_.value)
+            if next_ is not None:
+                return self._remove_quotes(next_.value)
+
+            next_ = self.token_next_by_instance(dot_idx, Identifier)
+            if next_ is not None:
+                return next_.get_name()
 
         for tok in self.tokens:
             if tok.ttype == T.Name:
                 return self._remove_quotes(tok.value)
-            elif type(tok) in (Identifier, Function):
+            elif type(tok) == Identifier:
                 return tok.get_name()
 
         # invalid identifier, e.g. "a."
@@ -629,7 +637,7 @@ class Case(TokenList):
         return ret
 
 
-class Function(TokenList):
+class Function(Identifier):
     """A function or procedure call."""
 
     __slots__ = ('value', 'ttype', 'tokens')
